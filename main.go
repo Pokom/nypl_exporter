@@ -2,12 +2,7 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"nypl_exporter/pkg"
 )
@@ -27,6 +22,7 @@ func main() {
 		fmt.Printf("NYPL_API_URL not set, defaulting to %q\n", defaultUrl)
 		url = defaultUrl
 	}
+
 	client := nypl_exporter.NewClient(key, url)
 	if err := run(client); err != nil {
 		fmt.Println(err)
@@ -34,38 +30,11 @@ func main() {
 	}
 }
 
-func handleProbe(w http.ResponseWriter, r *http.Request, client *nypl_exporter.Client) {
-	q := r.URL.Query()
-	query := q["query"]
-	if len(query) == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-	var queries []string
-	for _, qm := range query {
-		// Potentially split on comma to allow multiple queries in a single entry
-		queries = append(queries, strings.Split(qm, ",")...)
-	}
-
-	collector := nypl_exporter.NewExporter(client)
-	collector.Queries = queries
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(collector)
-	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-	h.ServeHTTP(w, r)
-}
-
 func run(client *nypl_exporter.Client) error {
-	exp := nypl_exporter.NewExporter(client)
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(
-		exp,
-	)
-	http.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	http.Handle("/probe", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleProbe(w, r, client)
-	}))
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	resp, err := client.ItemsTotal()
+	if err != nil {
 		return err
 	}
+	fmt.Println(resp.NYPLAPI.Response.Count.Value)
 	return nil
 }

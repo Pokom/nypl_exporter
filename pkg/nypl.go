@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 type Client struct {
@@ -55,16 +56,20 @@ func (c *Client) Do(method string, endpoint string) ([]byte, error) {
 	return body, nil
 }
 
-func (c *Client) ItemsTotal() (*TotalResponse, error) {
+func (c *Client) ItemsTotal() (float64, error) {
 	resp, err := c.Do("GET", "items/total")
 	if err != nil {
-		return nil, err
+		return 0.0, err
 	}
 	var totalResponse *TotalResponse
 	if err := json.Unmarshal(resp, &totalResponse); err != nil {
-		return nil, err
+		return 0.0, err
 	}
-	return totalResponse, nil
+	count, err := strconv.ParseFloat(totalResponse.NYPLAPI.Response.Count.Value, 64)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 type SearchResponse struct {
@@ -80,18 +85,22 @@ type SearchResponse struct {
 	} `json:"nyplAPI"`
 }
 
-func (c *Client) Search(q string, publicDomain bool) (*SearchResponse, error) {
+func (c *Client) Search(q string, publicDomain bool) (float64, error) {
 	publicDomainOnly := "true"
 	if !publicDomain {
 		publicDomainOnly = "false"
 	}
 	resp, err := c.Do("GET", fmt.Sprintf("items/search?q=%s&publicDomainOnly=%s", q, publicDomainOnly))
 	if err != nil {
-		return nil, err
+		return 0.0, err
 	}
 	var searchResponse *SearchResponse
 	if err := json.Unmarshal(resp, &searchResponse); err != nil {
-		return nil, err
+		return 0.0, err
 	}
-	return searchResponse, nil
+	count, err := strconv.ParseFloat(searchResponse.NYPLAPI.Response.NumResults, 64)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }

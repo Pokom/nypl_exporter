@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+const DefaultURL = "https://api.repo.nypl.org/api/v2/"
+
 type Client struct {
 	Key string
 	URL string

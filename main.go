@@ -43,6 +43,7 @@ func main() {
 		fmt.Println("NYPL_API_KEY environment variable is required")
 		os.Exit(1)
 	}
+
 	if err := run(apiKey); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -65,6 +66,7 @@ func run(apiKey string) error {
 		start := time.Now()
 		MetricsRequestCounter.Inc()
 		handler.ServeHTTP(w, r)
+		// TODO: This is a bug. We'll always provide values here for the previous scrape.
 		MetricsRequestDuration.Set(time.Since(start).Seconds())
 		MetricsRequestDurationHistogram.Observe(time.Since(start).Seconds())
 		MetricsRequestSummary.Observe(time.Since(start).Seconds())
